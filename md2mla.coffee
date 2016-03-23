@@ -7,7 +7,7 @@ Array::first ?= -> @[0]
 
 Array::last ?= -> @[@length - 1]
 
-# process.chdir(__dirname)
+# process.chdir __dirname
 
 # style definitions for markdown
 styles =
@@ -122,7 +122,7 @@ class Node
         @code = coffee.compile code if code
         @height = +@attrs.title or 0
 
-    @style = _.extend({}, styles.default, styles[@type])
+    @style = _.extend {}, styles.default, styles[@type]
 
     # parse sub nodes
     @content = while tree.length
@@ -187,10 +187,10 @@ addPageNum = (doc, name) ->
   # todo: make more generic "draw text" function that sets the document properities based on provided styles
   doc.font styles.default.font
   for i in [range.start...range.start + range.count]
-    doc.switchToPage(i)
+    doc.switchToPage i
     doc.y = 72/2
     doc.x = 72
-    doc.text "#{name} #{i + 1}", _.extend({}, styles.default, {align: 'right'})
+    doc.text "#{name} #{i+1}", _.extend({}, styles.default, {align: 'right'})
 
 # reads and renders a markdown/literate coffeescript file to the document
 render = (doc, tree) ->
@@ -201,16 +201,16 @@ render = (doc, tree) ->
 
   onWorksCited = false
   while tree.length
-    node = new Node(tree.shift())
+    node = new Node tree.shift()
     # console.log "node =", node
     if node.type == "h1" && node.content?.first()?.text?.toLowerCase() == "works cited"
       onWorksCited = true
-      node.style = _.extend({}, styles.default, styles.citationHeader)
+      node.style = _.extend {}, styles.default, styles.citationHeader
 
     if onWorksCited && node.type == "para"
-      node.style = _.extend({}, styles.default, styles.citation)
+      node.style = _.extend {}, styles.default, styles.citation
 
-    node.render(doc)
+    node.render doc
 
   doc
 
@@ -223,7 +223,7 @@ render = (doc, tree) ->
 #   doc.font 'fonts/AlegreyaSans-Light.ttf', 60
 #   doc.y = doc.page.height / 2 - doc.currentLineHeight()
 #   doc.text title, align: 'center'
-#   w = doc.widthOfString(title)
+#   w = doc.widthOfString title
 
 #   doc.fontSize 20
 #   doc.y -= 10
@@ -238,7 +238,7 @@ render = (doc, tree) ->
 
 #   doc.addPage()
 
-exports.extractMetadata = (text) ->
+extractMetadata = (text) ->
   body = ""
   metadata = {}
 
@@ -249,17 +249,17 @@ exports.extractMetadata = (text) ->
     (.+)      # value
   $///
 
-  for line in text.split("\n")
-    if meta = line.match(metadata_pattern)
+  for line in text.split '\n'
+    if meta = line.match metadata_pattern
       key = meta[1]
       value = meta[2]
       metadata[key] = value
     else
-      body += line + "\n"
+      body += line + '\n'
 
   {metadata: metadata, body: body}
 
-exports.createMLADocument = (body, metadata, stream) ->
+createMLADocument = (body, metadata, stream) ->
   tree = md.parse body
   tree.shift() # ignore 'markdown' first element
 
@@ -270,30 +270,34 @@ exports.createMLADocument = (body, metadata, stream) ->
 
   doc.info.Title    = metadata.title
   doc.info.Author   = metadata.author
-  doc.info.Creator = "markdowntomla by christian.gen.co"
+  doc.info.Creator  = "markdowntomla by christian.gen.co"
 
   # add header
   doc.font 'Times-Roman'
   doc.fontSize 12
-  doc.text(metadata.author,     _.extend({}, styles.default, styles.meta))
-  doc.text(metadata.instructor, _.extend({}, styles.default, styles.meta))
-  doc.text(metadata.course,     _.extend({}, styles.default, styles.meta))
-  doc.text(metadata.date,       _.extend({}, styles.default, styles.meta))
-  doc.text(metadata.title,      _.extend({}, styles.default, styles.title))
+  doc.text metadata.author,     _.extend({}, styles.default, styles.meta)
+  doc.text metadata.instructor, _.extend({}, styles.default, styles.meta)
+  doc.text metadata.course,     _.extend({}, styles.default, styles.meta)
+  doc.text metadata.date,       _.extend({}, styles.default, styles.meta)
+  doc.text metadata.title,      _.extend({}, styles.default, styles.title)
 
-  doc.pipe(stream)
   render doc, tree
-  addPageNum(doc, metadata.lastName)
+  addPageNum doc, metadata.lastName
+  doc.pipe stream
   # doc.flushPages()
   doc.end()
+  doc
+
+exports.extractMetadata   = extractMetadata
+exports.createMLADocument = createMLADocument
 
 # do ->
 #   # command line
 #   fs = require 'fs'
-#   filename = "paper.md"
-#   content  = fs.readFileSync(filename, 'utf8')
-#   content  = extractMetadata(content)
+#   filename = 'mla_paper.md'
+#   content  = fs.readFileSync filename, 'utf8'
+#   content  = extractMetadata content
 #   body     = content.body
 #   metadata = content.metadata
-#   stream   = fs.createWriteStream("#{metadata.title} by #{metadata.author}.pdf")
-#   createDocument(body, metadata, stream)
+#   stream   = fs.createWriteStream "#{metadata.title} by #{metadata.author}.pdf"
+#   createMLADocument body, metadata, stream

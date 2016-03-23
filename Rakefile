@@ -1,13 +1,13 @@
 require 'uglifier'
 
-task default: %w[build]
+task :default => ["build_mla", "build_apa"]
 
 task :build_mla do
-  puts "browserifying"
-  puts system("browserify -t coffeeify browser.app.coffee > js/markdowntomla.js")
+  puts "Browserifying"
+  puts system("browserify -t coffeeify browser.md2mla.coffee > js/md2mla.js")
 
-  puts "building minified self-contained index.html"
-  html = File.read('template.html')
+  puts "Building minified self-contained index.html"
+  html = File.read('template_md2mla.html')
   bundled = html.split("\n").map{|line|
     if line =~ /\<script.*src=\"(.*)\"/
       path = $1
@@ -17,15 +17,15 @@ task :build_mla do
       line
     end
   }
-  File.open('built/index.html', 'w'){|f| f.puts bundled}
+  File.open('built/mla/index.html', 'w'){|f| f.puts bundled}
 end
 
 task :build_apa do
-  puts "browserifying"
-  puts system("browserify -t coffeeify browser.markdowntoapa.coffee > js/markdowntoapa.js")
+  puts "Browserifying"
+  puts system("browserify -t coffeeify browser.md2apa.coffee > js/md2apa.js")
 
-  puts "building minified self-contained index.html"
-  html = File.read('template_markdowntoapa.html')
+  puts "Building minified self-contained index.html"
+  html = File.read('template_md2apa.html')
   bundled = html.split("\n").map{|line|
     if line =~ /\<script.*src=\"(.*)\"/
       path = $1

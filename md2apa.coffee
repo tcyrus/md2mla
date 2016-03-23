@@ -7,7 +7,7 @@ Array::first ?= -> @[0]
 
 Array::last ?= -> @[@length - 1]
 
-# process.chdir(__dirname)
+# process.chdir __dirname
 
 # style definitions for markdown
 styles =
@@ -77,7 +77,7 @@ class Node
         @code = coffee.compile code if code
         @height = +@attrs.title or 0
 
-    @style = _.extend({}, styles.default, styles[@type])
+    @style = _.extend {}, styles.default, styles[@type]
 
     # parse sub nodes
     @content = while tree.length
@@ -140,11 +140,11 @@ addAPAHeader = (doc, runningHead) ->
   range = doc.bufferedPageRange() # => { start: 0, count: 2 }
   doc.font styles.default.font
   for i in [range.start...range.start + range.count]
-    doc.switchToPage(i)
+    doc.switchToPage i
     doc.y = 72/2
     doc.x = 72
     head = runningHead
-    head = "Running head: " + head if i == 0
+    head = "Running head: #{head}" if i == 0
     doc.text head, _.extend({}, styles.default, {})
 
     doc.y = 72/2
@@ -160,16 +160,16 @@ render = (doc, tree) ->
 
   onWorksCited = false
   while tree.length
-    node = new Node(tree.shift())
+    node = new Node tree.shift()
     # console.log "node =", node
     if node.type == "h1" && node.content?.first()?.text?.toLowerCase() == "references"
       onWorksCited = true
-      node.style = _.extend({}, styles.default, styles.citationHeader)
+      node.style = _.extend {}, styles.default, styles.citationHeader
 
     if onWorksCited && node.type == "para"
-      node.style = _.extend({}, styles.default, styles.citation)
+      node.style = _.extend {}, styles.default, styles.citation
 
-    node.render(doc)
+    node.render doc
 
   doc
 
@@ -182,7 +182,7 @@ render = (doc, tree) ->
 #   doc.font 'fonts/AlegreyaSans-Light.ttf', 60
 #   doc.y = doc.page.height / 2 - doc.currentLineHeight()
 #   doc.text title, align: 'center'
-#   w = doc.widthOfString(title)
+#   w = doc.widthOfString title
 
 #   doc.fontSize 20
 #   doc.y -= 10
@@ -208,13 +208,13 @@ extractMetadata = (text) ->
     (.+)      # value
   $///
 
-  for line in text.split("\n")
-    if meta = line.match(metadata_pattern)
+  for line in text.split "\n"
+    if meta = line.match metadata_pattern
       key = meta[1]
       value = meta[2].replace(/\\n/, "\n")
       metadata[key] = value
     else
-      body += line + "\n"
+      body += line + '\n'
 
   {metadata: metadata, body: body}
 
@@ -222,41 +222,42 @@ createAPADocument = (body, metadata, stream) ->
   tree = md.parse body
   tree.shift() # ignore 'markdown' first element
 
-  metadata.lastName ||= metadata.author?.split(" ").last()
+  metadata.lastName ||= metadata.author?.split(' ').last()
 
   doc = new PDFDocument
     bufferPages: true
 
-  doc.info.Title    = metadata.title.replace("\n", " ")
+  doc.info.Title    = metadata.title.replace '\n', ' '
   doc.info.Author   = metadata.author
-  doc.info.Creator = "markdowntoapa by christian.gen.co"
+  doc.info.Creator  = "markdowntoapa by christian.gen.co"
 
   # add header
   doc.y = 72*3
   doc.font 'Times-Roman'
   doc.fontSize 12
-  doc.text(metadata.title,       _.extend({}, styles.default, styles.title))
-  doc.text(metadata.author,      _.extend({}, styles.default, styles.title))
-  doc.text(metadata.institution, _.extend({}, styles.default, styles.title))
+  doc.text metadata.title,       _.extend({}, styles.default, styles.title)
+  doc.text metadata.author,      _.extend({}, styles.default, styles.title)
+  doc.text metadata.institution, _.extend({}, styles.default, styles.title)
 
   doc.addPage()
 
   # add abstract page
-  doc.text("Abstract", _.extend({}, styles.default, styles.citationHeader))
-  doc.text(metadata.abstract, _.extend({}, styles.default, {}))
+  doc.text "Abstract", _.extend({}, styles.default, styles.citationHeader)
+  doc.text metadata.abstract, _.extend({}, styles.default, {})
   if metadata.keywords
     # TODO: more generic text writing function
     doc.font styles.em.font
-    doc.text("Keywords: ", _.extend({continued: true}, styles.default, styles.para))
+    doc.text "Keywords: ", _.extend({continued: true}, styles.default, styles.para)
     doc.font styles.default.font
-    doc.text(metadata.keywords, _.extend({}, styles.default, styles.para))
+    doc.text metadata.keywords, _.extend({}, styles.default, styles.para)
 
   doc.addPage()
 
-  doc.text(metadata.title,       _.extend({}, styles.default, styles.title))
+  doc.text metadata.title, _.extend({}, styles.default, styles.title)
 
   render doc, tree
-  addAPAHeader(doc, metadata.runninghead)
+  # addAPAHeader doc, metadata.runninghead
+  doc.pipe stream
   doc.end()
   doc
 
@@ -266,11 +267,10 @@ exports.createAPADocument = createAPADocument
 # do ->
 #   # command line
 #   fs = require 'fs'
-#   filename = "apa_paper.md"
-#   content  = fs.readFileSync(filename, 'utf8')
-#   content  = extractMetadata(content)
+#   filename = 'apa_paper.md'
+#   content  = fs.readFileSync filename, 'utf8'
+#   content  = extractMetadata content
 #   body     = content.body
 #   metadata = content.metadata
-#   doc      = createAPADocument(body, metadata)
-#   stream   = fs.createWriteStream("#{metadata.title.replace("\n", ' ')} by #{metadata.author}.pdf")
-#   doc.pipe(stream)
+#   stream   = fs.createWriteStream "#{metadata.title.replace('\n', ' ')} by #{metadata.author}.pdf"
+#   doc      = createAPADocument body, metadata, stream
